@@ -1,65 +1,42 @@
-# tomato-timer README
+# Tomato Timer
 
-This is the README for your extension "tomato-timer". After writing up a brief description, we recommend including the following sections.
+The time management for a more productive way to work on VS Code with Pomodoro technique.
+
+* Author: tungvn
+* Extension URI: [https://gitlab.com/tungvn/tomato-timer](https://gitlab.com/tungvn/tomato-timer)
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+* Follow [Pomodoro technique](https://en.wikipedia.org/wiki/Pomodoro_Technique).
+* After each pomodoro, we have a short break. We have long break in 1 times each 3 (can be customized) short break times.
+* Extension show a count down clock and name of process.
+* Extension will show an information box to announce.
 
-For example if there is an image subfolder under your extension project workspace:
+### Install instructions
 
-\!\[feature X\]\(images/feature-x.png\)
+Install via Extension Marketplace
+- Open Command on Visual Studio Code (Ctrl+Shift+P on Windows or Cmd+Shift+P on Mac/OSX)
+- > ext install tomato-timer
+- Wait until install complete and restart VS Code
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Install by Packaged Extension (.vsix)
+- You can manually install an VS Code extension packaged in a .vsix file. Simply install using the VS Code command line providing the path to the .vsix file.
+- >code extension_name.vsix
+- The extension will be installed under your user .vscode/extensions folder. You may provide multiple .vsix files on the command line to install multiple extensions at once.
+- You can also install a .vsix by opening the file from within VS Code. Run File > Open File... or Ctrl+O and select the extension .vsix.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
+* `tomatoTimer.shortBreakToLongBreakTime`: The number short break time between pomodoro then have long break time, default is 3 times.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 1.0.0 First commit
 
-### 1.0.0
+Initial release of Tomato Timer
 
-Initial release of ...
+## Issues
 
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on OSX or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on OSX or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (OSX) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Need to be improve or fix the bugs, click [here](https://gitlab.com/tungvn/tomato-timer/issues/new)

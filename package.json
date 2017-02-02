@@ -44,7 +44,7 @@
                 "tomatoTimer.shortBreakToLongBreakTime": {
                     "type": "integer",
                     "default": 3,
-                    "description": "Short break time between pomodoro then take a long break time"
+                    "description": "Short break time between pomodoro then have long break time"
                 }
             }
         }
