@@ -28,6 +28,11 @@ function activate(context) {
 
   // Action create new Pomodoro
   const timerStart = vscode.commands.registerCommand('timer.start', function () {
+    if (statusBarItem.isStart()) {
+      vscode.window.showWarningMessage('Another pomodoro process is running. Please close that process to create a new one!');
+      return false;
+    }
+
     vscode.window
       .showQuickPick(['15 minutes', '20 minutes', '25 minutes', '45 minutes', '60 minutes'])
       .then(function (time) {
@@ -45,6 +50,11 @@ function activate(context) {
 
   // Action cancel exists Pomodoro
   const timerStop = vscode.commands.registerCommand('timer.cancel', function () {
+    if (!statusBarItem.isStart()) {
+      vscode.window.showWarningMessage('No pomodoro process is running!');
+      return false;
+    }
+
     vscode.window
       .showQuickPick(['Stop Pomodoro', 'Continue Pomodoro'])
       .then(function (c) {
@@ -84,8 +94,13 @@ class TomatoTimerBarItem {
     this._tomatoTimer.dispose();
     this._statusBarItem.dispose();
     clearInterval(this._interval);
+    this._isStart = false;
 
     this.init();
+  }
+
+  isStart() {
+    return this._isStart;
   }
 
   start(time) {
