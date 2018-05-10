@@ -4,6 +4,7 @@
     "description": "The time management technique for a more productive way to work on VS Code",
     "version": "1.5.0",
     "publisher": "tungvn",
+    "repository": "https://gitlab.com/tungvn/tomato-timer/",
     "engines": {
         "vscode": "^1.2.0"
     },
