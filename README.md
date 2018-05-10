@@ -29,7 +29,14 @@ Install by Packaged Extension (.vsix)
 
 This extension contributes the following settings:
 
+* `tomatoTimer.shortBreakTime`: Short break time (in minutes, default is 5).
+* `tomatoTimer.longBreakTime`: Long break time (in minutes, default is 10).
 * `tomatoTimer.shortBreakToLongBreakTime`: The number short break time between pomodoro then have long break time, default is 3 times.
+
+## Keyboard Shortcut
+
+* `Alt+P N`: Start a new Pomodoro process
+* `Alt+P C`: Stop a new Pomodoro process
 
 ## Release Notes
 
