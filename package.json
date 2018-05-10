@@ -2,7 +2,7 @@
     "name": "tomato-timer",
     "displayName": "Tomato Timer",
     "description": "The time management technique for a more productive way to work on VS Code",
-    "version": "1.0.0",
+    "version": "1.5.0",
     "publisher": "tungvn",
     "engines": {
         "vscode": "^1.2.0"
