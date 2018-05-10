@@ -33,6 +33,11 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.5.0 - 2018/05/10
+- Add more configurations about time of short and long break
+- Update follow and UI actions
+- Use EventEmitter to notice
+
 ### 1.0.0 First commit
 
 Initial release of Tomato Timer
