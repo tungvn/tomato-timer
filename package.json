@@ -41,6 +41,16 @@
             "type": "object",
             "title": "Pomodoro - Tomato Timer",
             "properties": {
+                "tomatoTimer.shortBreakTime": {
+                    "type": "integer",
+                    "default": 5,
+                    "description": "Short break time (in minutes)"
+                },
+                "tomatoTimer.longBreakTime": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Long break time (in minutes)"
+                },
                 "tomatoTimer.shortBreakToLongBreakTime": {
                     "type": "integer",
                     "default": 3,
