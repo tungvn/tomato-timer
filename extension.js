@@ -1,200 +1,216 @@
 'use strict';
 
-var vscode = require('vscode');
+const EventEmitter = require('events');
+const vscode = require('vscode');
+const _STATUS = {
+  POMODORO: 'pomodoro',
+  SHORT_BREAK: 'shortBreak',
+  LONG_BREAK: 'longBreak',
+};
+const MINUTE_IN_SECONDS = 60;
+const HOUR_IN_SECONDS = 60 * MINUTE_IN_SECONDS;
 
 function activate(context) {
-    // Get settings
-    var settings = vscode.workspace.getConfiguration().get("tomatoTimer");
-    var shortToLongTime = settings.shortBreakToLongBreakTime;
+  // Get settings
+  const settings = vscode.workspace.getConfiguration().get("tomatoTimer");
+  const shortBreakTime = (settings && settings.shortBreakTime) || 5;
+  const longBreakTime = (settings && settings.longBreakTime) || 10;
+  const shortBreakToLongBreakTime = (settings && settings.shortBreakToLongBreakTime) || 3;
+  const options = {
+    shortBreakTime,
+    longBreakTime,
+    shortBreakToLongBreakTime,
+  };
 
-    // Define status bar item for tomato timer
-    let statusBarItem = new TomatoTimerBarItem("", 0, shortToLongTime);
-    context.subscriptions.push(statusBarItem);
+  // Define status bar item for tomato timer
+  const statusBarItem = new TomatoTimerBarItem(options);
+  context.subscriptions.push(statusBarItem);
 
-    // Action create new Pomodoro
-    let timerStart = vscode.commands.registerCommand('timer.start', function () {
-        vscode.window
-            .showQuickPick(['10 minutes', '20 minutes', '25 minutes', '45 minutes', '60 minutes'])
-            .then(function (time) {
-                if (typeof time == 'undefined') {
-                    return false;
-                }
+  // Action create new Pomodoro
+  const timerStart = vscode.commands.registerCommand('timer.start', function () {
+    vscode.window
+      .showQuickPick(['15 minutes', '20 minutes', '25 minutes', '45 minutes', '60 minutes'])
+      .then(function (time) {
+        if (typeof time == 'undefined') {
+          return false;
+        }
 
-                let timePomo = parseInt(time);
-                vscode.window.showInformationMessage('Pomodoro start with '+time+'!');
-                statusBarItem = new TomatoTimerBarItem("pomodoro", timePomo*60, shortToLongTime);
-            });
-        
-    });
-    context.subscriptions.push(timerStart);
+        const timePomo = parseInt(time);
+        vscode.window.showInformationMessage('Pomodoro start with ' + time + '!');
+        statusBarItem.start(timePomo * MINUTE_IN_SECONDS);
+      });
 
-    // Action cancel exists Pomodoro
-    let timerStop = vscode.commands.registerCommand('timer.cancel', function () {
+  });
+  context.subscriptions.push(timerStart);
+
+  // Action cancel exists Pomodoro
+  const timerStop = vscode.commands.registerCommand('timer.cancel', function () {
+    vscode.window
+      .showQuickPick(['Stop Pomodoro', 'Continue Pomodoro'])
+      .then(function (c) {
+        if (!c || c === 'Continue Pomodoro') {
+          return false;
+        }
         vscode.window.showWarningMessage('Pomodoro stopped!');
         statusBarItem.dispose();
-    });
-    context.subscriptions.push(timerStop);
+      });
+  });
+  context.subscriptions.push(timerStop);
 }
 exports.activate = activate;
 
-function deactivate() {
-}
+function deactivate() {}
 exports.deactivate = deactivate;
 
 class TomatoTimerBarItem {
-    constructor(status, time, shortToLongTime) {
-        this._tomatoTimer = new TomatoTimer(status, time, shortToLongTime);
+  constructor(options) {
+    this._options = options;
 
-        this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
-        this._statusBarItem.command = 'timer.start';
-        this._statusBarItem.tooltip = 'Click to start a pomodoro';
-        this._statusBarItem.show();
+    this._tomatoTimer = null;
+    this._interval = null;
+    this._isStart = false;
 
-        this._interval = setInterval(() => this.refreshUI(), 1000);
+    this.init();
+  }
 
-        this.refreshUI();
+  init() {
+    this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
+    this._statusBarItem.command = 'timer.start';
+    this._statusBarItem.text = '$(triangle-right) Start a pomodoro';
+    this._statusBarItem.show();
+  }
+
+  dispose() {
+    this._tomatoTimer.dispose();
+    this._statusBarItem.dispose();
+    clearInterval(this._interval);
+
+    this.init();
+  }
+
+  start(time) {
+    this._isStart = true;
+    this._statusBarItem.command = 'timer.cancel';
+
+    this._tomatoTimer = new TomatoTimer(time, this._options);
+    this._tomatoTimer.start();
+    this._tomatoTimer.on('stateChange', (state) => {
+      vscode.window.showInformationMessage('Pomodoro state change to ' + state.toUpperCase());
+    });
+
+    this._start();
+    this._interval = setInterval(() => this._start(), 1000);
+  }
+
+  _start() {
+    const text = this._tomatoTimer.display();
+    if (text) {
+      this._statusBarItem.text = `$(x) ${text}`;
     }
-
-    dispose() {
-        this._statusBarItem.dispose();
-        clearInterval(this._interval);
-    }
-
-    refreshUI() {
-        let text = this._tomatoTimer.text();
-        if (text) {
-            this._statusBarItem.text = text;
-            this._statusBarItem.command = 'timer.cancel';
-            this._statusBarItem.tooltip = 'Cancel';
-
-            if (this._tomatoTimer.isStatusChange()) {
-                vscode.window
-                    .showInformationMessage(
-                        'Pomodoro Process: '+this._tomatoTimer
-                            .getStatus()
-                            .toUpperCase()
-                    );
-            }
-        } else {
-            this.dispose();
-        }
-    }
+  }
 }
 
-class TomatoTimer {
-    constructor(status, time, shortToLongTime) {
-        this._status = status;
-        this._time = time;
-        this._remainTime = time;
-        this._shortToLongTime = shortToLongTime - 1;
-        this._breakTime = shortToLongTime - 1;
+class TomatoTimer extends EventEmitter {
+  constructor(time, options) {
+    super();
 
-        this._statusChange = false;
+    this._options = options;
+    this._time = time;
+    this._remainTime = time;
+    this._isStart = false;
+  }
+
+  dispose() {
+    this._status = '';
+    this._remainTime = 0;
+    this._isStart = false;
+  }
+
+  start() {
+    this._status = _STATUS.POMODORO;
+    this._shortBreakTimeCountDown = this._options.shortBreakToLongBreakTime || 3;
+    this._breakTime = this._shortBreakTimeCountDown - 1;
+    this._isStart = true;
+  }
+
+  getRemainTime() {
+    return this._remainTime;
+  }
+
+  isStart() {
+    return this._isStart;
+  }
+
+  getStatus() {
+    return this._status;
+  }
+
+  isPomodoro() {
+    return _STATUS.POMODORO === this.getStatus();
+  }
+
+  isShortBreak() {
+    return _STATUS.SHORT_BREAK === this.getStatus();
+  }
+
+  isLongBreak() {
+    return _STATUS.LONG_BREAK === this.getStatus();
+  }
+
+  remainHumanTime() {
+    let remain = this._remainTime;
+    let text = '';
+    let unit = ' seconds';
+    if (remain <= 0) {
+      return text;
     }
 
-    dispose() {
-        this._status = "";
-        this._remainTime = 0;
+    while (0 <= remain) {
+      if (HOUR_IN_SECONDS < remain) {
+        let hours = Math.floor(remain / HOUR_IN_SECONDS);
+        remain -= hours * HOUR_IN_SECONDS;
+        text += `${hours}`.padStart(2, '0') + ":";
+        unit = ' hours';
+      } else if (MINUTE_IN_SECONDS < remain) {
+        let minutes = Math.floor(remain / MINUTE_IN_SECONDS);
+        remain -= minutes * MINUTE_IN_SECONDS;
+        text += `${minutes}`.padStart(2, '0') + ":";
+        unit = ' minutes';
+      } else {
+        text += `${remain}`.padStart(2, '0');
+        remain = -1;
+      }
     }
 
-    getRemainTime() {
-        return this._remainTime;
-    }
+    return text + unit;
+  }
 
-    getStatus() {
-        return this._status;
-    }
-
-    isPomodoro() {
-        if ("pomodoro" === this.getStatus()) {
-            return true;
+  state() {
+    // When complete a process
+    if (0 >= this._remainTime) {
+      if (this.isPomodoro()) {
+        if (0 < this._breakTime) {
+          this._status = _STATUS.SHORT_BREAK;
+          this._remainTime = this._options.shortBreakTime * MINUTE_IN_SECONDS;
+          this._breakTime--;
+          this.emit('stateChange', this.getStatus());
+        } else if (0 === this._breakTime) {
+          this._status = _STATUS.LONG_BREAK;
+          this._remainTime = this._options.longBreakTime * MINUTE_IN_SECONDS;
+          this._breakTime = this._shortBreakTimeCountDown - 1;
+          this.emit('stateChange', this.getStatus());
         }
-        return false;
+      } else {
+        this._status = _STATUS.POMODORO;
+        this._remainTime = this._time;
+        this.emit('stateChange', this.getStatus());
+      }
     }
+  }
 
-    isShortBreak() {
-        if ("shortBreak" === this.getStatus()) {
-            return true;
-        }
-        return false;
-    }
-
-    isLongBreak() {
-        if ("longBreak" === this.getStatus()) {
-            return true;
-        }
-        return false;
-    }
-
-    remainHumanTime(remain) {
-        var text = '';
-        var unit = ' seconds';
-        let minute_in_second = 60;
-        let hour_in_second = 60 * minute_in_second;
-
-        while (0 <= remain) {
-            if (hour_in_second < remain) {
-                let hours = Math.floor(remain/hour_in_second);
-                remain -= hours*hour_in_second;
-                text += (hours > 9 ? hours : "0"+hours) + ":";
-                unit = ' hours';
-            } else if (minute_in_second < remain) {
-                let minutes = Math.floor(remain/minute_in_second);
-                remain -= minutes*minute_in_second;
-                text += (minutes > 9 ? minutes : "0"+minutes) + ":";
-                unit = ' minutes';
-            } else {
-                text += remain > 9 ? remain : "0"+remain;
-                remain = -1;
-            }
-        }
-
-        return text + unit;
-    }
-
-    action() {
-        // When complete a process
-        if (0 > this._remainTime) {
-            if (this.isPomodoro()) {
-                if (0 < this._breakTime) {
-                    this._status = 'shortBreak';
-                    this._remainTime = 5*60;
-                    this._breakTime--;
-                } else if (0 === this._breakTime) {
-                    this._status = 'longBreak';
-                    this._remainTime = 10*60;
-                    this._breakTime = this._shortToLongTime;
-                }
-            } else {
-                this._status = 'pomodoro';
-                this._remainTime = this._time;
-            }
-
-            this._statusChange = true;
-        } else {
-            this._statusChange = false;
-        }
-
-        return this;
-    }
-
-    text() {
-        if (!this.isPomodoro() && !this.isShortBreak() && !this.isLongBreak()) {
-            this.dispose();
-            return false;
-        }
-
-        this.action();
-        let text = this.remainHumanTime(this._remainTime--);
-
-        if (!text) {
-            return 'POMODORO START';
-        }
-
-        return this._status.toUpperCase() + ' in ' + text;
-    }
-
-    isStatusChange() {
-        return this._statusChange;
-    }
+  display() {
+    this._remainTime--;
+    this.state();
+    return this._status.toUpperCase() + ' in ' + this.remainHumanTime();
+  }
 }
